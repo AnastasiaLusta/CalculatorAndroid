@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Basics</string>
+    <string name="app_name">Calculator</string>
     <!-- Start Activity -->
     <string name="tv_hello_text">Android Basics</string>
 

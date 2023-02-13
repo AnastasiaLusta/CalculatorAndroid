@@ -3,146 +3,84 @@ package com.example.calculator;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import java.util.Locale;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 public class CalcActivity extends AppCompatActivity {
-    private TextView tvHistory ;
-    private TextView tvResult ;
-    private String minusSign ;
+    public static Context context;
+    public static boolean error;
+    public static boolean needClearRes = false;
+    public static boolean needClearAll = false;
+    private Views views;
+    private CalculatorButtons buttons;
 
     @Override
-    protected void onCreate( Bundle savedInstanceState ) {
+    protected void onCreate(Bundle savedInstanceState) {
+        CalcActivity.context = super.getApplicationContext();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calc);
 
-        tvHistory = findViewById( R.id.tvHistory ) ;
-        tvResult  = findViewById( R.id.tvResult  ) ;
-        tvHistory.setText( "" ) ;
-        tvResult.setText( "0" ) ;
-        minusSign = getString( R.string.minus_sign ) ;
+        views = new Views(findViewById(R.id.tvHistory), findViewById(R.id.tvResult));
+        views.getTvHistory().setText("");
+        views.getTvResult().setText("0");
 
-        for( int i = 0; i < 10; ++i ) {                     //  Поиск ресурсов по имени (по строке)
-            findViewById(                                   //
-                    getResources()                              //  Обращение к ресурсу (R.)
-                            .getIdentifier(                         //  запрос идентификатора (числа)
-                                    "btn" + i,                          //   имя
-                                    "id",                               //   поиск по группе (.id)
-                                    getPackageName()                    //   пакет поиска (наш проект)
-                            )                                       //
-            ).setOnClickListener( this::digitClick ) ;      //
+        View[] serviceButtons = new View[]{
+                findViewById(R.id.btnPlusMinus),
+                findViewById(R.id.btnComma),
+                findViewById(R.id.btnBackspace)};
 
-        }
-        // findViewById( R.id.btn7 ).setOnClickListener( this::digitClick ) ;
-        findViewById( R.id.btnPlusMinus ).setOnClickListener( this::pmClick ) ;
-        findViewById( R.id.btnInverse ).setOnClickListener( this::inverseClick ) ;
-        Log.d( "onCreate", "onCreate" ) ;
+        buttons = new CalculatorButtons(FindNumbers(), FindOperations(), serviceButtons, views);
     }
 
     /**
-     * Вызывается при разрушении активности, используется для сохранения данных
-     * @param outState сохраняемый объект
+     * Call when destroy activity. Use to save data
+     *
+     * @param outState to saved object
      */
     @Override
-    protected void onSaveInstanceState( @NonNull Bundle outState ) {
-        super.onSaveInstanceState( outState ) ;  // обязательно оставить
-        // сохраняем history и result в объекте outState
-        outState.putCharSequence( "history", tvHistory.getText() ) ;   // помещаем в словарь outState текст "истории" под ключем "history"
-        outState.putCharSequence( "result",  tvResult.getText()  ) ;
-        Log.d( "onSaveInstanceState", "Данные сохранены" ) ;
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putCharSequence("history", views.getTvHistory().getText());
+        outState.putCharSequence("result", views.getTvResult().getText());
+        Log.d("onSaveInstance", "Data saves");
     }
 
     /**
-     * Вызывается после пересоздания активности, используется для восстановления данных
-     * @param savedInstanceState сохраненный объект
+     * Call after create activity. Use to change data
+     *
+     * @param savedInstanceState saved object
      */
     @Override
-    protected void onRestoreInstanceState( @NonNull Bundle savedInstanceState ) {
-        super.onRestoreInstanceState( savedInstanceState ) ;
-        tvHistory.setText( savedInstanceState.getCharSequence( "history" ) ) ;
-        tvResult.setText(  savedInstanceState.getCharSequence( "result"  ) ) ;
-        Log.d( "onRestoreInstanceState", "Данные восстановлены" ) ;
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        views.getTvHistory().setText(savedInstanceState.getCharSequence("history"));
+        views.getTvResult().setText(savedInstanceState.getCharSequence("result"));
+        Log.d("onSaveInstance", "Data was rad");
     }
 
-    private void pmClick( View v ) {  // изменение знака (плюс/минус)
-        String result = tvResult.getText().toString() ;
-        if( result.equals( "0" ) ) {
-            return ;
-        }
-        if( result.startsWith( minusSign ) ) {
-            result = result.substring( 1 ) ;
-        }
-        else {
-            result = minusSign + result ;
-        }
-        tvResult.setText( result ) ;
+    private List<View> FindNumbers() {
+        return Arrays.asList(findViewById(R.id.btn7), findViewById(R.id.btn8), findViewById(R.id.btn9), findViewById(R.id.btn4), findViewById(R.id.btn5), findViewById(R.id.btn6), findViewById(R.id.btn1), findViewById(R.id.btn2), findViewById(R.id.btn3), findViewById(R.id.btn0));
     }
-    private void digitClick( View v ) {
-        // задача: ограничить величиной в 10 цифр
-        String result = tvResult.getText().toString() ;
-        if( result.length() >= 10 ) return ;
 
-        String digit = ((Button) v).getText().toString() ;
-        if( result.equals( "0" ) ) {
-            result = digit ;
-        }
-        else {
-            result += digit ;
-        }
-        tvResult.setText( result ) ;
-    }
-    private void inverseClick( View v ) {   //  1/x
-        String result = tvResult.getText().toString() ;
-        double arg = getArgument( result ) ;
-        if( arg == 0 ) {
-            Toast                                     //  Системное сообщение (всплывающее)
-                    .makeText(                            //    (~MessageBox)
-                            CalcActivity.this,            //  привязано к нашей активности
-                            "Cannot divide by zero",      //  текст сообщения
-                            Toast.LENGTH_SHORT )          //  длительность показа (продолжительность)
-                    .show() ;                             //  Запуск показа
-            return ;
-        }
-        tvHistory.setText( String.format( "1/(%s) =", result ) ) ;
-        arg = 1 / arg ;
-        result = String.format( Locale.getDefault(), "%.10f", arg ) ;
-        while( result.endsWith( "0" ) ) {
-            result = result.substring( 0, result.length() - 1 ) ;
-        }
-        tvResult.setText( result.replace( "-", minusSign ) ) ;
-    }
-    private double getArgument( String resultText ) {
-        return Double.parseDouble(
-                resultText.replace( minusSign, "-" ) ) ;
+    private HashMap<View, String> FindOperations() {
+        return new HashMap<View, String>() {{
+            put(findViewById(R.id.btnPercent), "percent");
+            put(findViewById(R.id.btnClearE), "clearE");
+            put(findViewById(R.id.btnClearAll), "clearAll");
+            put(findViewById(R.id.btnInverse), "inverse");
+            put(findViewById(R.id.btnSquare), "square");
+            put(findViewById(R.id.btnSqrt), "sqrt");
+            put(findViewById(R.id.btnDivide), "divide");
+            put(findViewById(R.id.btnMultiplication), "multiply");
+            put(findViewById(R.id.btnMinus), "minus");
+            put(findViewById(R.id.btnPlus), "plus");
+            put(findViewById(R.id.btnSum), "equal");
+        }};
     }
 }
-/*
-Д.З. Реализовать работу кнопки калькулятора "корень квадратный"
-Обеспечить отображение не больше 10 цифр результата,
-предусмотреть замены знаков "-" и "." на соотв. символы
-ограничить расчет положительными аргументами (для отрицательных выдавать предупреждение)
- */
-/*
-Изменение конфигурации устройства (поворот, изменение размера и т.п.)
-система производит поиск ресурсов, максимально удовлетворяющих новую конфигурацию и
-  пересоздает активность. Если вариантов нет и активность одна, то она же пересоздается
-  (вызывается onCreate но в него передается Bundle savedInstanceState, заполненный
-   предыдущим состоянием)
-альтернативы
- - запретить изменение конфигурации (в манифесте указать, что активность всегда портретная)
- - указать свои обработчики изменения конфигурации (в манифесте заявить, в коде реализовать)
-     в таком случае onCreate не перезапускается, а только вызываются обработчики
-= рекомендуется системный контроль и создаение альтернативных ресурсов для разных конфигураций
- */
-/*
-Д.З. Реализовать функции калькулятора:
-- набор цифр (не более 10 цифр на экране)
-- изменение знака (плюс/минус) - знак не считается за цифру, ограничение - 10 именно цифр
-- десятичная точка - тоже не считается за цифру + ограничить набор более одной точки
- */
